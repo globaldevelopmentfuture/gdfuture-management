@@ -140,7 +140,7 @@ export default function LoginPage() {
                 <>
                   <h2 className="text-xl font-semibold text-white mb-2">Reset password</h2>
                   <p className="text-white/60 text-sm mb-6">
-                    Enter your email address and we'll send you instructions to reset your password.
+                    Enter your email address and we&apos;ll send you instructions to reset your password.
                   </p>
 
                   <form onSubmit={handleResetPassword} className="space-y-4">
@@ -176,7 +176,7 @@ export default function LoginPage() {
                   </div>
                   <h3 className="text-lg font-semibold text-white mb-2">Check your email</h3>
                   <p className="text-white/60 text-sm">
-                    We've sent password reset instructions to your email address.
+                    We&apos;ve sent password reset instructions to your email address.
                   </p>
                 </div>
               )}

@@ -8,7 +8,6 @@ import {
   Users,
   Briefcase,
   Building2,
-  HelpCircle,
   ChevronLeft,
   Settings,
   Activity,
