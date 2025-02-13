@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Plus,
   Mail,
@@ -88,7 +88,6 @@ const TeamSection = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         const preview = reader.result as string;
-        setImagePreview(preview);
         if (isNew) {
           setNewMember({ ...newMember, avatar: preview });
         } else if (selectedMember) {
@@ -100,7 +99,6 @@ const TeamSection = () => {
   };
 
   const handleRemoveImage = (isNew: boolean) => {
-    setImagePreview(null);
     if (isNew) {
       setNewMember({ ...newMember, avatar: null });
     } else if (selectedMember) {
@@ -499,30 +497,41 @@ const TeamSection = () => {
           >
             <div className="p-6 flex gap-4">
               <div className="relative">
-                <div className="w-20 h-20 rounded-full overflow-hidden bg-white/5">
-                  {member.avatar ? (
-                    <div>
-                      <Image
-                        src={member.avatar}
-                        alt={member.name}
-                        width={80}
-                        height={80}
-                        className="object-cover w-full h-full"
-                      />
-                      <div className="absolute -bottom-2 -right-2 bg-yellow-500 text-xs font-medium text-gray-900 px-2 py-0.5 rounded-md">
-                        {member.projects}
-                      </div>
-                    </div>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-32 h-32 rounded-full overflow-hidden cursor-pointer ${
+                    !imagePreview && !member.avatar
+                      ? "bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center"
+                      : ""
+                  }`}
+                >
+                  {imagePreview ? (
+                    <Image
+                      src={imagePreview}
+                      alt="Avatar preview"
+                      width={128}
+                      height={128}
+                      className="object-cover w-full h-full"
+                    />
+                  ) : member.avatar ? (
+                    <Image
+                      src={member.avatar}
+                      alt="Avatar preview"
+                      width={128}
+                      height={128}
+                      className="object-cover w-full h-full"
+                    />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <User className="w-10 h-10 text-white/40" />
-                      <div className="absolute left-0 top-0 bg-yellow-500 text-xs font-medium text-gray-900 px-2 py-0.5 rounded-md">
-                        {member.projects}
-                      </div>
+                    <div className="flex flex-col items-center justify-center">
+                      <User className="w-8 h-8 text-white/40 mb-2" />
+                      <span className="text-xs text-white/40">
+                        Click to upload
+                      </span>
                     </div>
                   )}
                 </div>
               </div>
+
               <div className="flex-1">
                 <div className="flex justify-between items-start">
                   <div>
