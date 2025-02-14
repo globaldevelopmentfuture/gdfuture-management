@@ -64,7 +64,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   if (!isConnected) {
     return (
       <main className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-800 via-gray-900 to-black">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 20 }}
@@ -75,7 +75,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           >
             {children}
 
-            d
           </motion.div>
         </AnimatePresence>
       </main>

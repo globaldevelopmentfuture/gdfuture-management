@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Menu, Bell, Search, User, Settings, LogOut } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from "react";
+import { Menu, Bell, Search, User, Settings, LogOut } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface DashboardHeaderProps {
   sidebarOpen: boolean;
@@ -15,64 +15,72 @@ interface Notification {
   message: string;
   time: string;
   read: boolean;
-  type: 'info' | 'warning' | 'success' | 'error';
+  type: "info" | "warning" | "success" | "error";
   icon?: React.ReactNode;
 }
 
-const DashboardHeader: React.FC<DashboardHeaderProps> = ({ sidebarOpen, setSidebarOpen }) => {
+const DashboardHeader: React.FC<DashboardHeaderProps> = ({
+  sidebarOpen,
+  setSidebarOpen,
+}) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: 1,
-      title: 'New Project Assigned',
-      message: 'You have been assigned to the E-Commerce Platform project',
-      time: '5 minutes ago',
+      title: "New Project Assigned",
+      message: "You have been assigned to the E-Commerce Platform project",
+      time: "5 minutes ago",
       read: false,
-      type: 'info'
+      type: "info",
     },
     {
       id: 2,
-      title: 'Meeting Reminder',
-      message: 'Team standup meeting in 15 minutes',
-      time: '10 minutes ago',
+      title: "Meeting Reminder",
+      message: "Team standup meeting in 15 minutes",
+      time: "10 minutes ago",
       read: false,
-      type: 'warning'
+      type: "warning",
     },
     {
       id: 3,
-      title: 'Task Completed',
-      message: 'Frontend development phase completed successfully',
-      time: '1 hour ago',
+      title: "Task Completed",
+      message: "Frontend development phase completed successfully",
+      time: "1 hour ago",
       read: true,
-      type: 'success'
-    }
+      type: "success",
+    },
   ]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAsRead = (id: number) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+    setNotifications(
+      notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
   };
 
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+    setNotifications(notifications.map((n) => ({ ...n, read: true })));
   };
 
-  const getNotificationColor = (type: Notification['type']) => {
+  const getNotificationColor = (type: Notification["type"]) => {
     switch (type) {
-      case 'info': return 'bg-blue-500';
-      case 'warning': return 'bg-yellow-500';
-      case 'success': return 'bg-emerald-500';
-      case 'error': return 'bg-rose-500';
-      default: return 'bg-gray-500';
+      case "info":
+        return "bg-blue-500";
+      case "warning":
+        return "bg-yellow-500";
+      case "success":
+        return "bg-emerald-500";
+      case "error":
+        return "bg-rose-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
   return (
-    <header className="h-16 z-40 bg-gray-900/95 backdrop-blur-xl border-b border-white/10">
+    <header className="sticky top-0 h-16 z-[100] bg-gray-900/95 backdrop-blur-xl border-b border-white/10 isolation">
       <div className="h-full px-4 sm:px-6 flex items-center justify-between max-w-[2000px] mx-auto">
         <div className="flex items-center space-x-4 sm:space-x-6">
           <button
@@ -81,7 +89,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ sidebarOpen, setSideb
           >
             <Menu className="w-5 h-5 text-white/80" />
           </button>
-          
+
           <div className="relative hidden sm:block">
             <Search className="w-4 h-4 text-white/40 absolute left-3 top-1/2 transform -translate-y-1/2" />
             <input
@@ -95,13 +103,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ sidebarOpen, setSideb
         <div className="flex items-center space-x-2">
           {/* Notifications */}
           <div className="relative">
-            <button 
+            <button
               className="p-2 hover:bg-white/5 rounded-lg relative group"
               onClick={() => setShowNotifications(!showNotifications)}
             >
               <Bell className="w-5 h-5 text-white/60 group-hover:text-white transition-colors" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-yellow-500 rounded-full" />
+                <span className="absolute z-100 top-1.5 right-1.5 w-2 h-2 bg-yellow-500 rounded-full" />
               )}
             </button>
 
@@ -111,11 +119,13 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ sidebarOpen, setSideb
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 mt-2 w-96 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                  className="absolute right-0 mt-2 w-96 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl isolation z-[9999] overflow-hidden"
                 >
                   <div className="p-4 border-b border-white/10">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium text-white">Notifications</h3>
+                      <h3 className="text-lg font-medium text-white">
+                        Notifications
+                      </h3>
                       {unreadCount > 0 && (
                         <button
                           onClick={markAllAsRead}
@@ -131,12 +141,16 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ sidebarOpen, setSideb
                       <div
                         key={notification.id}
                         className={`p-4 hover:bg-white/5 transition-colors cursor-pointer ${
-                          !notification.read ? 'bg-white/[0.02]' : ''
+                          !notification.read ? "bg-white/[0.02]" : ""
                         }`}
                         onClick={() => markAsRead(notification.id)}
                       >
                         <div className="flex items-start space-x-3">
-                          <div className={`w-2 h-2 mt-2 rounded-full ${getNotificationColor(notification.type)}`} />
+                          <div
+                            className={`w-2 h-2 mt-2 rounded-full ${getNotificationColor(
+                              notification.type
+                            )}`}
+                          />
                           <div className="flex-1">
                             <h4 className="text-sm font-medium text-white">
                               {notification.title}
@@ -167,7 +181,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ sidebarOpen, setSideb
               className="flex items-center space-x-3 p-2 hover:bg-white/5 rounded-lg transition-colors group"
             >
               <div className="hidden sm:block text-right">
-                <div className="text-sm font-medium text-white group-hover:text-white/90">John Doe</div>
+                <div className="text-sm font-medium text-white group-hover:text-white/90">
+                  John Doe
+                </div>
                 <div className="text-xs text-white/50">Administrator</div>
               </div>
               <div className="relative w-9 h-9">
@@ -184,7 +200,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ sidebarOpen, setSideb
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden"
+                  className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl isolation z-[9999] overflow-hidden"
                 >
                   <div className="p-2 space-y-1">
                     <button className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors">
