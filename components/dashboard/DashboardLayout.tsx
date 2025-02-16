@@ -20,7 +20,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Simulate checking auth status
     const checkAuth = async () => {
       setIsLoading(true);
       try {

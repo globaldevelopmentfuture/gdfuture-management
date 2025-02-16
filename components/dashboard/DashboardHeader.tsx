@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Menu, Bell, Search, User, Settings, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LoginContext } from "../context/LoginProvider";
+import LoginContextType from "../context/LoginContextType";
 
 interface DashboardHeaderProps {
   sidebarOpen: boolean;
@@ -23,6 +25,8 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   sidebarOpen,
   setSidebarOpen,
 }) => {
+  const {user, logOut} = useContext(LoginContext) as LoginContextType;
+
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -207,7 +211,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                       <Settings className="w-4 h-4" />
                       <span>Settings</span>
                     </button>
-                    <button className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors">
+                    <button onClick={logOut} className="w-full flex items-center space-x-2 px-3 py-2 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors">
                       <LogOut className="w-4 h-4" />
                       <span>Sign out</span>
                     </button>

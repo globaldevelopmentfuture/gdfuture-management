@@ -1,26 +1,61 @@
 "use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Mail, Lock, AlertCircle, ArrowLeft, Send } from 'lucide-react';
+import { useContext, useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { Zap, Mail, Lock, AlertCircle, ArrowLeft, Send } from "lucide-react";
+import UserService from "@/components/user/service/UserService";
+import { toast } from "sonner";
+import { ToastMessage } from "@/components/toast/ToastMessage";
+import { LoginContext } from "@/components/context/LoginProvider";
+import LoginContextType from "@/components/context/LoginContextType";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const { setUserCookie } = useContext(LoginContext) as LoginContextType;
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isResetMode, setIsResetMode] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
-    if (email === 'floredenis@yahoo.com' && password === 'admin') {
-      router.push('/');
-    } else {
-      setError('Invalid email or password');
+    try {
+      const userService = new UserService();
+      const loginResponse = await userService.login({ email, password });
+
+      if (typeof loginResponse === "string") {
+        toast.custom((t) => (
+          <ToastMessage
+            type="error"
+            title="Authentication Failed"
+            message={loginResponse}
+            onClose={() => toast.dismiss(t)}
+          />
+        ));
+      } else {
+        setUserCookie(loginResponse);
+        toast.custom((t) => (
+          <ToastMessage
+            type="success"
+            title="Success"
+            message="Welcome back! Login successful."
+            onClose={() => toast.dismiss(t)}
+          />
+        ));
+        router.push("/");
+      }
+    } catch (error) {
+      toast.custom((t) => (
+        <ToastMessage
+          type="warning"
+          title="Error"
+          message={(error as Error).message || "Failed to login"}
+          onClose={() => toast.dismiss(t)}
+        />
+      ));
     }
   };
 
@@ -56,8 +91,12 @@ export default function LoginPage() {
               exit={{ opacity: 0, x: 20 }}
               className="bg-white/[0.02] border border-white/10 rounded-xl p-6 backdrop-blur-xl"
             >
-              <h2 className="text-xl font-semibold text-white mb-2">Welcome back</h2>
-              <p className="text-white/60 text-sm mb-6">Sign in to access your dashboard</p>
+              <h2 className="text-xl font-semibold text-white mb-2">
+                Welcome back
+              </h2>
+              <p className="text-white/60 text-sm mb-6">
+                Sign in to access your dashboard
+              </p>
 
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
@@ -93,13 +132,6 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-
-                {error && (
-                  <div className="flex items-center space-x-2 text-rose-500 text-sm bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>{error}</span>
-                  </div>
-                )}
 
                 <button
                   type="submit"
@@ -138,9 +170,12 @@ export default function LoginPage() {
 
               {!resetSent ? (
                 <>
-                  <h2 className="text-xl font-semibold text-white mb-2">Reset password</h2>
+                  <h2 className="text-xl font-semibold text-white mb-2">
+                    Reset password
+                  </h2>
                   <p className="text-white/60 text-sm mb-6">
-                    Enter your email address and we&apos;ll send you instructions to reset your password.
+                    Enter your email address and we&apos;ll send you
+                    instructions to reset your password.
                   </p>
 
                   <form onSubmit={handleResetPassword} className="space-y-4">
@@ -174,9 +209,12 @@ export default function LoginPage() {
                   <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                     <Send className="w-6 h-6 text-emerald-500" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Check your email</h3>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    Check your email
+                  </h3>
                   <p className="text-white/60 text-sm">
-                    We&apos;ve sent password reset instructions to your email address.
+                    We&apos;ve sent password reset instructions to your email
+                    address.
                   </p>
                 </div>
               )}
