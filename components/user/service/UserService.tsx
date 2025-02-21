@@ -1,29 +1,23 @@
 import ApiServer from "@/components/system/service/ApiServer";
 import LoginRequest from "../dto/LoginRequest";
 import LoginResponse from "../dto/LoginResponse";
-
+import { ApiError } from "next/dist/server/api-utils";
 
 class UserService extends ApiServer {
-  login = async (user: LoginRequest): Promise<LoginResponse|string> => {
-    const data = await this.api<LoginRequest, LoginResponse>(
+  login = async (user: LoginRequest): Promise<LoginResponse> => {
+    const response = await this.api<LoginRequest, LoginResponse>(
       `/user/login`,
       "POST",
       user
     );
-    if (data.status === 200) {
-      const user = await data.json();
-      return user;
-    } else if (data.status === 404) {
-      const message = await data.text();
-      return message;
-    }
-     else {
-      return Promise.reject([]);
+
+    if (response.ok) {
+      return await response.json();
+    } else {
+      const error: ApiError = await response.json();
+      return Promise.reject(error);
     }
   };
-
-
-
 }
 
 export default UserService;

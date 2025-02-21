@@ -11,7 +11,7 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const publicRoutes = ['/login', '/register', '/forgot-password'];
+const publicRoutes = ['/login', '/register', '/forgot-password' , '/password-reset'];
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
