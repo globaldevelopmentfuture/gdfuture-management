@@ -186,9 +186,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             >
               <div className="hidden sm:block text-right">
                 <div className="text-sm font-medium text-white group-hover:text-white/90">
-                  John Doe
+                {user.fullName}
                 </div>
-                <div className="text-xs text-white/50">Administrator</div>
+                <div className="text-xs text-white/50">{user.userRole}</div>
               </div>
               <div className="relative w-9 h-9">
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg rotate-45 blur opacity-40" />
