@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -13,171 +13,253 @@ import {
   Upload,
   User,
   X,
+  Search,
+  Filter,
+  Shield,
+  Users,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import DeleteDialog from "@/components/ui/DeleteDialog";
 import Image from "next/image";
-
-interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  email: string;
-  phone: string;
-  location: string;
-  avatar: string | null;
-  experience: string;
-  skills: string[];
-  projects: number;
-}
+import UserService from "../user/service/UserService";
+import UserResponse from "../user/dto/UserResponse";
+import { TeamPosition } from "../user/dto/TeamPosition";
+import CreateUserRequest from "../user/dto/CreateUserRequest";
+import { UserRole } from "../user/dto/UserRole";
+import UpdateUserRequest from "../user/dto/UpdateUserRequest";
 
 const TeamSection = () => {
-  const [team, setTeam] = useState<TeamMember[]>([
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      role: "Senior Developer",
-      email: "sarah@example.com",
-      phone: "+1 234 567 890",
-      location: "New York, USA",
-      avatar: null,
-      experience: "8 years",
-      skills: ["React", "Node.js", "TypeScript", "AWS"],
-      projects: 24,
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      role: "UI/UX Designer",
-      email: "michael@example.com",
-      phone: "+1 234 567 891",
-      location: "San Francisco, USA",
-      avatar: null,
-      experience: "5 years",
-      skills: ["Figma", "Adobe XD", "UI Design", "Prototyping"],
-      projects: 18,
-    },
-  ]);
-
+  const userService = new UserService();
+  const [team, setTeam] = useState<UserResponse[]>([]);
+  const [filteredTeam, setFilteredTeam] = useState<UserResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Modal states
   const [isNewMemberOpen, setIsNewMemberOpen] = useState(false);
   const [isEditMemberOpen, setIsEditMemberOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [selectedMember, setSelectedMember] = useState<UserResponse | null>(null);
+  
+  // Form states
   const [newSkill, setNewSkill] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarFile, setAvatarFile] = useState<File | undefined>(undefined);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  const [newMember, setNewMember] = useState<Omit<TeamMember, "id">>({
-    name: "",
-    role: "",
-    email: "",
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [positionFilter, setPositionFilter] = useState<TeamPosition | "ALL">("ALL");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [experienceFilter, setExperienceFilter] = useState("all");
+
+  const [newMember, setNewMember] = useState<CreateUserRequest>({
+    fullName: "",
     phone: "",
+    email: "",
+    password: "",
+    userRole: UserRole.UTILIZATOR,
     location: "",
-    avatar: null,
     experience: "",
-    skills: [],
-    projects: 0,
+    teamPosition: TeamPosition.JUNIOR_DEVELOPER,
+    skills: []
   });
 
-  const handleImageUpload = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    isNew: boolean
-  ) => {
+  useEffect(() => {
+    fetchTeamMembers();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [team, searchQuery, positionFilter, locationFilter, experienceFilter]);
+
+  const fetchTeamMembers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await userService.getAllUsers();
+      setTeam(data);
+      setFilteredTeam(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch team members");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getPositionColor = (position: TeamPosition | undefined) => {
+    switch (position) {
+      case TeamPosition.SENIOR_DEVELOPER:
+        return "bg-purple-500/20 text-purple-500";
+      case TeamPosition.LEAD:
+        return "bg-yellow-500/20 text-yellow-500";
+      case TeamPosition.MANAGER:
+        return "bg-blue-500/20 text-blue-500";
+      case TeamPosition.INTERN:
+        return "bg-green-500/20 text-green-500";
+      case TeamPosition.JUNIOR_DEVELOPER:
+      default:
+        return "bg-gray-500/20 text-gray-500";
+    }
+  };
+
+  const getPositionLabel = (position: TeamPosition) => {
+    return position.split('_').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  const applyFilters = () => {
+    let filtered = [...team];
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(member => 
+        member.fullName.toLowerCase().includes(query) ||
+        member.teamPosition?.toLowerCase().includes(query) ||
+        member.skills?.some(skill => skill.toLowerCase().includes(query))
+      );
+    }
+
+    if (positionFilter !== "ALL") {
+      filtered = filtered.filter(member => member.teamPosition === positionFilter);
+    }
+
+    if (locationFilter !== "all") {
+      filtered = filtered.filter(member => member.location === locationFilter);
+    }
+
+    if (experienceFilter !== "all") {
+      filtered = filtered.filter(member => {
+        const years = parseInt(member.experience || "0");
+        switch (experienceFilter) {
+          case "junior": return years <= 2;
+          case "mid": return years > 2 && years <= 5;
+          case "senior": return years > 5;
+          default: return true;
+        }
+      });
+    }
+
+    setFilteredTeam(filtered);
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         const preview = reader.result as string;
-        if (isNew) {
-          setNewMember({ ...newMember, avatar: preview });
-        } else if (selectedMember) {
-          setSelectedMember({ ...selectedMember, avatar: preview });
-        }
+        setImagePreview(preview);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleRemoveImage = (isNew: boolean) => {
-    if (isNew) {
-      setNewMember({ ...newMember, avatar: null });
-    } else if (selectedMember) {
-      setSelectedMember({ ...selectedMember, avatar: null });
-    }
+  const handleRemoveImage = () => {
+    setAvatarFile(undefined);
+    setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
   const handleAddSkill = (isNew: boolean) => {
-    if (newSkill.trim()) {
-      if (isNew) {
-        setNewMember({
-          ...newMember,
-          skills: [...newMember.skills, newSkill.trim()],
-        });
-      } else if (selectedMember) {
-        setSelectedMember({
-          ...selectedMember,
-          skills: [...selectedMember.skills, newSkill.trim()],
-        });
-      }
-      setNewSkill("");
+    if (!newSkill.trim()) return;
+    
+    if (isNew) {
+      setNewMember({
+        ...newMember,
+        skills: [...(newMember.skills || []), newSkill.trim()],
+      });
+    } else if (selectedMember) {
+      setSelectedMember({
+        ...selectedMember,
+        skills: [...(selectedMember.skills || []), newSkill.trim()],
+      });
     }
+    setNewSkill("");
   };
 
   const handleRemoveSkill = (skillToRemove: string, isNew: boolean) => {
     if (isNew) {
       setNewMember({
         ...newMember,
-        skills: newMember.skills.filter((skill) => skill !== skillToRemove),
+        skills: newMember.skills?.filter(skill => skill !== skillToRemove) || [],
       });
     } else if (selectedMember) {
       setSelectedMember({
         ...selectedMember,
-        skills: selectedMember.skills.filter(
-          (skill) => skill !== skillToRemove
-        ),
+        skills: selectedMember.skills?.filter(skill => skill !== skillToRemove) || [],
       });
     }
   };
 
-  const handleCreateMember = () => {
-    const member: TeamMember = {
-      id: team.length + 1,
-      ...newMember,
-    };
-    setTeam([...team, member]);
-    setNewMember({
-      name: "",
-      role: "",
-      email: "",
-      phone: "",
-      location: "",
-      avatar: null,
-      experience: "",
-      skills: [],
-      projects: 0,
-    });
-    setImagePreview(null);
-    setIsNewMemberOpen(false);
-  };
-
-  const handleEditMember = () => {
-    if (selectedMember) {
-      setTeam(
-        team.map((m) => (m.id === selectedMember.id ? selectedMember : m))
-      );
-      setIsEditMemberOpen(false);
+  const handleCreateMember = async () => {
+    try {
+      const created = await userService.createUser(newMember, avatarFile);
+      setTeam(prev => [...prev, created]);
+      setNewMember({
+        fullName: "",
+        phone: "",
+        email: "",
+        password: "",
+        userRole: UserRole.UTILIZATOR,
+        location: "",
+        experience: "",
+        teamPosition: TeamPosition.JUNIOR_DEVELOPER,
+        skills: []
+      });
+      setAvatarFile(undefined);
       setImagePreview(null);
+      setIsNewMemberOpen(false);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to create team member");
     }
   };
 
-  const handleDeleteMember = () => {
-    if (selectedMember) {
-      setTeam(team.filter((m) => m.id !== selectedMember.id));
+  const handleEditMember = async () => {
+    if (!selectedMember) return;
+    
+    try {
+      const updateRequest: UpdateUserRequest = {
+        fullName: selectedMember.fullName,
+        phone: selectedMember.phone,
+        email: selectedMember.email,
+        location: selectedMember.location,
+        experience: selectedMember.experience,
+        teamPosition: selectedMember.teamPosition,
+        skills: selectedMember.skills
+      };
+
+      const updated = await userService.updateUser(
+        selectedMember.id,
+        updateRequest,
+        avatarFile
+      );
+
+      setTeam(prev => prev.map(member => 
+        member.id === updated.id ? updated : member
+      ));
+      
+      setIsEditMemberOpen(false);
+      setAvatarFile(undefined);
+      setImagePreview(null);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to update team member");
+    }
+  };
+
+  const handleDeleteMember = async () => {
+    if (!selectedMember) return;
+    
+    try {
+      await userService.deleteUser(selectedMember.id);
+      setTeam(prev => prev.filter(member => member.id !== selectedMember.id));
       setSelectedMember(null);
       setIsDeleteOpen(false);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to delete team member");
     }
   };
 
@@ -194,15 +276,15 @@ const TeamSection = () => {
             <div
               onClick={() => fileInputRef.current?.click()}
               className={`w-32 h-32 rounded-full overflow-hidden cursor-pointer ${
-                !member.avatar
+                !imagePreview 
                   ? "bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center"
                   : ""
               }`}
             >
-              {member.avatar ? (
+              {imagePreview ? (
                 <>
                   <Image
-                    src={member.avatar}
+                    src={imagePreview || ""}
                     alt="Avatar preview"
                     width={128}
                     height={128}
@@ -219,9 +301,9 @@ const TeamSection = () => {
                 </div>
               )}
             </div>
-            {member.avatar && (
+            {(imagePreview ) && (
               <button
-                onClick={() => handleRemoveImage(isNew)}
+                onClick={handleRemoveImage}
                 className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full hover:bg-red-600 transition-colors"
               >
                 <X className="w-4 h-4 text-white" />
@@ -231,7 +313,7 @@ const TeamSection = () => {
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => handleImageUpload(e, isNew)}
+              onChange={handleImageUpload}
               className="hidden"
             />
           </div>
@@ -243,46 +325,51 @@ const TeamSection = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-white mb-1">
-                Name
+                Full Name
               </label>
               <input
                 type="text"
-                value={member.name}
+                value={member.fullName}
                 onChange={(e) => {
                   if (isNew) {
-                    setNewMember({ ...newMember, name: e.target.value });
+                    setNewMember({ ...newMember, fullName: e.target.value });
                   } else if (selectedMember) {
                     setSelectedMember({
                       ...selectedMember,
-                      name: e.target.value,
+                      fullName: e.target.value,
                     });
                   }
                 }}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/50"
-                placeholder="Enter name..."
+                placeholder="Enter full name..."
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-white mb-1">
-                Role
+                Team Position
               </label>
-              <input
-                type="text"
-                value={member.role}
+              <select
+                value={member.teamPosition}
                 onChange={(e) => {
+                  const position = e.target.value as TeamPosition;
                   if (isNew) {
-                    setNewMember({ ...newMember, role: e.target.value });
+                    setNewMember({ ...newMember, teamPosition: position });
                   } else if (selectedMember) {
                     setSelectedMember({
                       ...selectedMember,
-                      role: e.target.value,
+                      teamPosition: position,
                     });
                   }
                 }}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/50"
-                placeholder="Enter role..."
-              />
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/50 [&>option]:bg-gray-900"
+              >
+                {Object.values(TeamPosition).map((position) => (
+                  <option key={position} value={position}>
+                    {getPositionLabel(position)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -306,9 +393,28 @@ const TeamSection = () => {
                   }
                 }}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/50"
-                placeholder="e.g., 8 years"
+                placeholder="e.g., 5 years"
               />
             </div>
+
+            {isNew && (
+              <div>
+                <label className="block text-sm font-medium text-white mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  onChange={(e) => {
+                    setNewMember({
+                      ...newMember,
+                      password: e.target.value,
+                    });
+                  }}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/50"
+                  placeholder="Enter password..."
+                />
+              </div>
+            )}
           </div>
 
           {/* Right Column */}
@@ -378,26 +484,6 @@ const TeamSection = () => {
                 placeholder="Enter location..."
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-white mb-1">
-                Projects Completed
-              </label>
-              <input
-                type="number"
-                value={member.projects}
-                onChange={(e) => {
-                  const projects = parseInt(e.target.value);
-                  if (isNew) {
-                    setNewMember({ ...newMember, projects });
-                  } else if (selectedMember) {
-                    setSelectedMember({ ...selectedMember, projects });
-                  }
-                }}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-yellow-500/50"
-                placeholder="0"
-              />
-            </div>
           </div>
         </div>
 
@@ -406,8 +492,8 @@ const TeamSection = () => {
           <label className="block text-sm font-medium text-white mb-2">
             Skills
           </label>
-          <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white/5 border border-white/10 rounded-lg">
-            {member.skills.map((skill, index) => (
+          <div className="flex flex-wrap gap-2 mb-4 p-2 bg-white/5 border border-white/10 rounded-lg min-h-[50px]">
+            {member.skills?.map((skill, index) => (
               <span
                 key={index}
                 className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-200 border border-yellow-500/20"
@@ -467,136 +553,192 @@ const TeamSection = () => {
   };
 
   return (
-    <div className="space-y-10 p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div className="space-y-8">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white">Team Members</h1>
-          <p className="text-gray-400">
-            Manage your team and their roles efficiently.
+          <p className="text-gray-400 mt-2">
+            {filteredTeam.length} of {team.length} members
           </p>
         </div>
 
         <button
           onClick={() => setIsNewMemberOpen(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 rounded-lg font-medium hover:from-yellow-400 hover:to-yellow-500 transition-all"
+          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 rounded-lg font-medium hover:from-yellow-400 hover:to-yellow-500 transition-all w-full lg:w-auto justify-center"
         >
           <Plus className="w-5 h-5" />
           <span>Add Member</span>
         </button>
       </div>
 
-      {/* Team Members Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {team.map((member) => (
-          <motion.div
-            key={member.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300"
-          >
-            <div className="p-6 flex gap-4">
-              <div className="relative">
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-32 h-32 rounded-full overflow-hidden cursor-pointer ${
-                    !imagePreview && !member.avatar
-                      ? "bg-white/5 border-2 border-dashed border-white/10 flex items-center justify-center"
-                      : ""
-                  }`}
-                >
-                  {imagePreview ? (
-                    <Image
-                      src={imagePreview}
-                      alt="Avatar preview"
-                      width={128}
-                      height={128}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : member.avatar ? (
-                    <Image
-                      src={member.avatar}
-                      alt="Avatar preview"
-                      width={128}
-                      height={128}
-                      className="object-cover w-full h-full"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <User className="w-8 h-8 text-white/40 mb-2" />
-                      <span className="text-xs text-white/40">
-                        Click to upload
-                      </span>
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search members..."
+            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-yellow-500/50"
+          />
+        </div>
+
+        <select
+          value={positionFilter}
+          onChange={(e) => setPositionFilter(e.target.value as TeamPosition | "ALL")}
+          className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white [&>option]:bg-gray-900 focus:outline-none focus:border-yellow-500/50"
+        >
+          <option value="ALL">All Positions</option>
+          {Object.values(TeamPosition).map(position => (
+            <option key={position} value={position}>
+              {getPositionLabel(position)}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white [&>option]:bg-gray-900 focus:outline-none focus:border-yellow-500/50"
+        >
+          <option value="all">All Locations</option>
+          {Array.from(new Set(team.map(member => member.location))).map(location => (
+            <option key={location} value={location}>{location}</option>
+          ))}
+        </select>
+
+        <select
+          value={experienceFilter}
+          onChange={(e) => setExperienceFilter(e.target.value)}
+          className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white [&>option]:bg-gray-900 focus:outline-none focus:border-yellow-500/50"
+        >
+          <option value="all">All Experience</option>
+          <option value="junior">Junior (0-2 years)</option>
+          <option value="mid">Mid-Level (3-5 years)</option>
+          <option value="senior">Senior (5+ years)</option>
+        </select>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500" />
+        </div>
+      ) : (
+        /* Team Members Grid */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredTeam.map((member) => (
+            <motion.div
+              key={member.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="group bg-gray-900/50 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden hover:border-yellow-500/50 transition-all duration-300"
+            >
+              <div className="p-6 flex gap-6">
+                <div className="relative shrink-0">
+                  <div className="w-24 h-24 rounded-xl overflow-hidden bg-white/5">
+                    {member.avatar ? (
+                      <Image
+                        src={member.avatar}
+                        alt={member.fullName}
+                        width={96}
+                        height={96}
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <User className="w-8 h-8 text-white/40" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <div className="min-w-0">
+                      <h3 className="text-xl font-semibold text-white truncate">
+                        {member.fullName}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getPositionColor(member.teamPosition)}`}>
+                          {member.teamPosition && getPositionLabel(member.teamPosition)}
+                        </span>
+                        {member.userRole === UserRole.ADMIN && (
+                          <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-500/20 text-red-500 flex items-center gap-1">
+                            <Shield className="w-3 h-3" />
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <button
+                        onClick={() => {
+                          setSelectedMember(member);
+                          setIsEditMemberOpen(true);
+                        }}
+                        className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedMember(member);
+                          setIsDeleteOpen(true);
+                        }}
+                        className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-2 gap-y-2 text-sm text-gray-400">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-white/40" />
+                      <span>{member.experience}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-white/40" />
+                      <span className="truncate">{member.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-white/40" />
+                      <span className="truncate">{member.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-white/40" />
+                      <span className="truncate">{member.phone}</span>
+                    </div>
+                  </div>
+
+                  {member.skills && member.skills.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {member.skills.map((skill, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-white/5 text-white/80 text-xs rounded-lg"
+                        >
+                          {skill}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
-
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">
-                      {member.name}
-                    </h3>
-                    <p className="text-yellow-500">{member.role}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedMember(member);
-                        setImagePreview(member.avatar);
-                        setIsEditMemberOpen(true);
-                      }}
-                      className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedMember(member);
-                        setIsDeleteOpen(true);
-                      }}
-                      className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-4 text-sm text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>{member.experience}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{member.location}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Mail className="w-4 h-4" />
-                    <span>{member.email}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Phone className="w-4 h-4" />
-                    <span>{member.phone}</span>
-                  </div>
-                </div>
-                {member.skills.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {member.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="px-2 py-1 bg-white/5 text-white/80 text-xs rounded-lg"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Modals */}
       <Modal
@@ -604,6 +746,7 @@ const TeamSection = () => {
         onClose={() => {
           setIsNewMemberOpen(false);
           setImagePreview(null);
+          setAvatarFile(undefined);
         }}
         title="Add Team Member"
       >
@@ -615,6 +758,7 @@ const TeamSection = () => {
         onClose={() => {
           setIsEditMemberOpen(false);
           setImagePreview(null);
+          setAvatarFile(undefined);
         }}
         title="Edit Team Member"
       >
@@ -626,7 +770,7 @@ const TeamSection = () => {
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDeleteMember}
         title="Delete Team Member"
-        message={`Are you sure you want to remove ${selectedMember?.name} from the team? This action cannot be undone.`}
+        message={`Are you sure you want to remove ${selectedMember?.fullName} from the team? This action cannot be undone.`}
       />
     </div>
   );

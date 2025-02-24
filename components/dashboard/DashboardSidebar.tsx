@@ -25,14 +25,12 @@ const menuItems = [
     label: "Dashboard",
     icon: LayoutDashboard,
     href: "/",
-    badge: { text: "New", color: "bg-emerald-500" },
   },
   {
     id: "projects",
     label: "Projects",
     icon: Building2,
     href: "/projects",
-    badge: { text: "12", color: "bg-blue-500" },
   },
   {
     id: "team",
@@ -45,7 +43,6 @@ const menuItems = [
     label: "Services",
     icon: Briefcase,
     href: "/services",
-    badge: { text: "3", color: "bg-yellow-500" },
   },
 ];
 
@@ -176,13 +173,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
                           </motion.span>
                         )}
                       </div>
-                      {isOpen && item.badge && (
-                        <span
-                          className={`${item.badge.color} px-2 py-1 rounded-full text-xs font-medium text-white`}
-                        >
-                          {item.badge.text}
-                        </span>
-                      )}
+                    
                     </div>
                   </Link>
                 );

@@ -1,0 +1,8 @@
+export enum TeamPosition {
+    JUNIOR_DEVELOPER = "JUNIOR_DEVELOPER",
+    SENIOR_DEVELOPER = "SENIOR_DEVELOPER",
+    MANAGER = "MANAGER",
+    LEAD = "LEAD",
+    INTERN = "INTERN"
+  }
+  

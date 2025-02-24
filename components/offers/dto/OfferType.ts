@@ -1,0 +1,4 @@
+export enum OfferType {
+    DIGITAL_MARKETING = "DIGITAL_MARKETING",
+    IT_SOLUTIONS = "IT_SOLUTIONS",
+}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import LoginContextType from "./LoginContextType";
 import { toast } from "sonner";
 import { ToastMessage } from "../toast/ToastMessage";
+import { UserRole } from "../user/dto/UserRole"; // Importăm enum-ul UserRole
 
 type LoginProviderProps = {
   children?: React.ReactNode;
@@ -21,7 +22,11 @@ const defaultUserState: LoginResponse = {
   fullName: "",
   phone: "",
   email: "",
-  userRole: "",
+  userRole: null, 
+  location: "",
+  avatar: "",
+  experience: "",
+  skills: [],
 };
 
 const LoginProvider: React.FC<LoginProviderProps> = ({ children }) => {
@@ -38,7 +43,10 @@ const LoginProvider: React.FC<LoginProviderProps> = ({ children }) => {
     const userCookie = Cookies.get("user");
     if (userCookie) {
       try {
-        const parsedUser = JSON.parse(userCookie);
+        const parsedUser: LoginResponse = JSON.parse(userCookie);
+        if (!Object.values(UserRole).includes(parsedUser.userRole as UserRole)) {
+          parsedUser.userRole = null; 
+        }
         setUser(parsedUser);
       } catch (error) {
         console.error("Failed to parse user cookie", error);
@@ -57,7 +65,6 @@ const LoginProvider: React.FC<LoginProviderProps> = ({ children }) => {
         title="Logged Out"
         message="You have been logged out."
         onClose={() => toast.dismiss(t)}
-
       />
     ));
     setTimeout(() => {
